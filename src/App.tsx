@@ -1,7 +1,6 @@
-import { Component, For, createEffect } from 'solid-js';
+import { Component, For, Show, createEffect } from 'solid-js';
 import { createStore, SetStoreFunction, Store } from "solid-js/store";
 
-import logo from './logo.svg';
 import styles from './App.module.css';
 
 const arr3 = Array.from({ length: 3 }, (value, index) => index);
@@ -22,7 +21,7 @@ export function removeIndex<T>(array: readonly T[], index: number): T[] {
   return [...array.slice(0, index), ...array.slice(index + 1)];
 }
 
-interface Block  { id: number; aX: number; aY: number; bX: number; bY: number; value: string, valid: boolean };
+interface Block  { id: number; aX: number; aY: number; bX: number; bY: number; value: string, valid: boolean, editable: boolean };
 interface CheckStruct {
   [key: string]: number,
   '0': number,
@@ -38,6 +37,11 @@ interface CheckStruct {
 };
 interface CheckGridStruct {rows: CheckStruct[], columns: CheckStruct[], squares: CheckStruct[] }
 
+const presets = [
+  "53 6   98 7 195          6 " +
+  "8  4  7   6 8 3 2   3  1  6" +
+  " 6          419 8 28   5 79"
+]
 
 const App: Component = () => {
 
@@ -58,7 +62,8 @@ const App: Component = () => {
       aY,
       bX,
       bY,
-      value: '',
+      value: presets[0][index] == ' ' ? '' : presets[0][index],
+      editable: presets[0][index] == ' ',
       valid: true
     };
   }));
@@ -71,29 +76,45 @@ const App: Component = () => {
     };
 
     blocks.forEach((block, idx) => {
-      let {aX, aY, bX, bY} = idToCoor(idx);
-      const row = (aX * 3) + bX;
-      const column = (aY * 3) + bY;
-      checks.rows[row] = checks.rows[row] ?? {};
-      const val = checks.rows[row];
       if(!block.value) {
-        setBlocks(idx, Object.assign({}, block, {
+        setBlocks(idx, {
           valid: true
-        }));
+        });
         return;
       }
-      if(val[block.value] !== undefined) {
-        setBlocks(idx, Object.assign({}, block, {
-          valid: false
-        }));
-        setBlocks(val[block.value], Object.assign({}, block, {
-          valid: false
-        }));
-      } else {
-        setBlocks(idx, Object.assign({}, block, {
+
+      let {aX, aY, bX, bY} = idToCoor(idx);
+      let valid = true;
+      const validSet = (val: CheckStruct) => {
+        if(val[block.value] !== undefined) {
+          setBlocks(idx, {
+            valid: false
+          });
+          setBlocks(val[block.value], {
+            valid: false
+          });
+          valid = false;
+        } else {
+          val[block.value] = idx;
+        }
+      }
+
+      const squareIdx = (aX * 3) + aY;
+      checks.squares[squareIdx] = checks.squares[squareIdx] ?? {};
+      validSet(checks.squares[squareIdx]);
+      
+      const rowIdx = (aX * 3) + bX;
+      checks.rows[rowIdx] = checks.rows[rowIdx] ?? {};
+      validSet(checks.rows[rowIdx]);
+
+      const columnIdx = (aY * 3) + bY;
+      checks.columns[columnIdx] = checks.columns[columnIdx] ?? {};
+      validSet(checks.columns[columnIdx]);
+
+      if(valid) {
+        setBlocks(idx, {
           valid: true
-        }));
-        val[block.value] = idx;
+        });
       }
     });
     return blocks
@@ -109,6 +130,10 @@ const App: Component = () => {
       valid: true
     });
     validateBlocks(blocks);
+  };
+
+  const getBlock = (aX: number, aY: number, bX: number, bY: number) => {
+    return blocks[(aX*3*3*3)+(aY*3*3)+(bX*3)+(bY)]
   };
 
   const getBlockValue = (aX: number, aY: number, bX: number, bY: number) => {
@@ -150,12 +175,18 @@ const App: Component = () => {
                                   data-pos={getBlockID(aX, aY, bX, bY)}
                                   data-coor={`${aX}-${aY}-${bX}-${bY}`}
                                   data-block={getBlockCoordinates(aX, aY, bX, bY)}
-                                  class={getBlockClass(aX, aY, bX, bY)}>
-                                  <input
-                                    type="text"
-                                    value={getBlockValue(aX, aY, bX, bY)}
-                                    maxLength="1"
-                                    onChange={(e) => setBlockValue(aX, aY, bX, bY, e.currentTarget.value)} />
+                                  class={getBlockClass(aX, aY, bX, bY) + ' block'}>
+                                  <Show when={!getBlock(aX, aY, bX, bY).editable} >
+                                    {getBlockValue(aX, aY, bX, bY)}
+                                  </Show>
+                                  <Show when={getBlock(aX, aY, bX, bY).editable} >
+                                    <input
+                                      type="number"
+                                      value={getBlockValue(aX, aY, bX, bY)}
+                                      min="1"
+                                      max="9"
+                                      onChange={(e) => setBlockValue(aX, aY, bX, bY, e.currentTarget.value)} />
+                                  </Show>
                                 </td>
                               )}
                             </For>

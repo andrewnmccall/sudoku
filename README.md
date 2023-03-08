@@ -1,8 +1,8 @@
-## Usage
+# Sudoku
 
-Those templates dependencies are maintained via [pnpm](https://pnpm.io) via `pnpm up -Lri`.
+Web implemtation of sudoku to learn SolidJS
 
-This is the reason you see a `pnpm-lock.yaml`. That being said, any package manager will work. This file can be safely be removed once you clone a template.
+## Getting Started
 
 ```bash
 $ npm install # or pnpm install or yarn install

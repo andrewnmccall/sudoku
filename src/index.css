@@ -22,17 +22,18 @@ table td {
 table table td {
   width: 3rem;
   height: 3rem;
+  font-size: 2.5rem;
 }
 table table td.invalid {
   background: red;
 }
 
-input[type="text"] {
+input[type="number"] {
   width: 100%;
   height: 100%;
+  font-size: 2.5rem;
   box-sizing: border-box;
   border: none;
-  font-size: 2.5rem;
   text-align: center;
   background: transparent;
 }
