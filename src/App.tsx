@@ -1,4 +1,4 @@
-import { Component, For, Show, createEffect } from 'solid-js';
+import { Component, For, Show, createEffect, createSignal } from 'solid-js';
 import { createStore, SetStoreFunction, Store } from "solid-js/store";
 
 import styles from './App.module.css';
@@ -40,7 +40,11 @@ interface CheckGridStruct {rows: CheckStruct[], columns: CheckStruct[], squares:
 const presets = [
   "53 6   98 7 195          6 " +
   "8  4  7   6 8 3 2   3  1  6" +
-  " 6          419 8 28   5 79"
+  " 6          419 8 28   5 79",
+
+  "759463128462518973813297645" +
+  "697584231184236795532971486" +
+  "34591287682164735976935812 "
 ]
 
 const App: Component = () => {
@@ -54,6 +58,8 @@ const App: Component = () => {
     };
   }
 
+  const [currentGame, setCurrentGame] = createSignal(0);
+  const [allValid, setAllValid] = createSignal(false);
   const [blocks, setBlocks] = createLocalStore<Block[]>("blocks", Array.from({ length: 3 * 3 * 3 * 3}, (value, index) : Block => {
     let {aX, aY, bX, bY} = idToCoor(index);
     return {
@@ -62,12 +68,22 @@ const App: Component = () => {
       aY,
       bX,
       bY,
-      value: presets[0][index] == ' ' ? '' : presets[0][index],
-      editable: presets[0][index] == ' ',
+      value: presets[1][index] == ' ' ? '' : presets[1][index],
+      editable: presets[1][index] == ' ',
       valid: true
     };
   }));
 
+  const setGame = (game: number) => {
+    presets[game].split('').forEach((val,idx) => {
+      
+      setBlocks(idx, {
+        value: val == ' ' ? '' : val,
+        editable: val == ' ',
+        valid: true
+      });
+    })
+  }
   const validateBlocks = (blocks: Block[]) => {
     const checks: CheckGridStruct = {
       rows: [],
@@ -75,11 +91,14 @@ const App: Component = () => {
       squares: [],
     };
 
+    let allValid = true;
+
     blocks.forEach((block, idx) => {
       if(!block.value) {
         setBlocks(idx, {
           valid: true
         });
+        allValid = false;
         return;
       }
 
@@ -94,6 +113,7 @@ const App: Component = () => {
             valid: false
           });
           valid = false;
+          allValid = false;
         } else {
           val[block.value] = idx;
         }
@@ -117,6 +137,7 @@ const App: Component = () => {
         });
       }
     });
+    setAllValid(allValid);
     return blocks
   }
   const setBlockValue = (aX: number, aY: number, bX: number, bY: number, value: string) => {
@@ -158,6 +179,19 @@ const App: Component = () => {
     <main class={styles.App}>
       <header class={styles.header}>
       </header>
+      <p>Valid: {allValid() ? 'Yes': 'No'}</p>
+      <p>
+        <span>Game:</span>
+        <select
+          onChange={(e) => setGame(parseInt(e.currentTarget.value, 10))}>
+          <For each={[...Array(presets.length).keys()]} fallback={<div>Loading...</div>}>
+            {(idx) => (
+              <option value={idx}>{idx + 1}</option>
+            )}
+          </For>
+
+        </select>
+      </p>
       <table>
         <For each={arr3} fallback={<div>Loading...</div>}>
           {(aX) => (
@@ -181,7 +215,7 @@ const App: Component = () => {
                                   </Show>
                                   <Show when={getBlock(aX, aY, bX, bY).editable} >
                                     <input
-                                      type="number"
+                                      type="text" inputmode="numeric" pattern="\d"
                                       value={getBlockValue(aX, aY, bX, bY)}
                                       min="1"
                                       max="9"
